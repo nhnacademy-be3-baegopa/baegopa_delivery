@@ -3,15 +3,16 @@
   <component name="CheckStyle-IDEA" serialisationVersion="2">
     <checkstyleVersion>10.9.3</checkstyleVersion>
     <scanScope>JavaOnly</scanScope>
+    <option name="thirdPartyClasspath" />
     <option name="activeLocationIds">
-      <option value="a8b576d2-2a24-4d08-a093-4801a40ee883" />
+      <option value="5c7354fc-3a30-4753-b47c-5063ed552c69" />
     </option>
     <option name="locations">
       <list>
         <ConfigurationLocation id="bundled-sun-checks" type="BUNDLED" scope="All" description="Sun Checks">(bundled)</ConfigurationLocation>
         <ConfigurationLocation id="bundled-google-checks" type="BUNDLED" scope="All" description="Google Checks">(bundled)</ConfigurationLocation>
-        <ConfigurationLocation id="a8b576d2-2a24-4d08-a093-4801a40ee883" type="LOCAL_FILE" scope="All" description="Custom Check">
-          $USER_HOME$/Desktop/nhnCode/google_checks.xml
+        <ConfigurationLocation id="5c7354fc-3a30-4753-b47c-5063ed552c69" type="HTTP_URL" scope="All" description="baegopa-check-style">
+          https://raw.githubusercontent.com/nhnacademy-be3-baegopa/etc/main/google_checks.xml
           <option name="properties">
             <map>
               <entry key="org.checkstyle.google.suppressionfilter.config" value="" />
