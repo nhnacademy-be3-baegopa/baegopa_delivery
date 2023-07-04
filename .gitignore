@@ -172,3 +172,6 @@ Temporary Items
 
 # 체크스타일은 올라가야함.
 !.idea/checkstyle-idea.xml
+
+# javadoc 설정 파일은 올라가야함.
+!.idea/intellij-javadocs-*
