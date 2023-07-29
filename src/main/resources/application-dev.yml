@@ -1,0 +1,39 @@
+store:
+  baegopa:
+    delivery:
+      database:
+        url: "7adac8608ebc41fabb3d6b892a5ea0fb"
+        username: "575d57f3c73b46a08ebe9eb8f1a4a136"
+        password: "4ef680db97cd464b9dfa10b671365eed"
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        initial-size: 5
+        max-total: 5
+        max-idle: 5
+        min-idle: 5
+        max-wait-millis: 2000
+        validation-query: select 1
+        test-on-borrow: true
+
+logging:
+  level: # 상세한 로그를 보고 싶으면 debug or trace
+    store:
+      baegopa: debug
+
+    sql: debug
+    root: info
+    web: debug
+    org:
+      springframework: info
+
+  file:
+    name: "./logs/server.log"
+
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      file-name-pattern: ${LOG_FILE}.%d{yyyy-MM-dd}.%i
+      max-history: 30
+      total-size-cap: 1GB
+
+
+debug: false # 상세한 로그를 보고 싶으면 true
