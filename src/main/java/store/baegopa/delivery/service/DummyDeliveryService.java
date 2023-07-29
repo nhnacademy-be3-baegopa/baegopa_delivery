@@ -9,6 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
+import store.baegopa.delivery.config.DummyDeliveryTimeProperties;
 import store.baegopa.delivery.entity.DeliveryDriverEntity;
 import store.baegopa.delivery.entity.code.DeliveryStateCode;
 import store.baegopa.delivery.repository.DeliveryDriverRepository;
@@ -31,8 +33,10 @@ import store.baegopa.delivery.repository.DeliveryDriverRepository;
 public class DummyDeliveryService {
     private static final String LOG_FORMAT = "{}초 뒤에 {}합니다.";
     private static final String THREAD_INTERRUPTED = "thread interrupted ! : {}";
+    public static final String CALLBACK_SERVER_ERROR = "콜백서버 에러 : {}";
     private final DeliveryCallbackService deliveryCallbackService;
     private final DeliveryDriverRepository deliveryDriverRepository;
+    private final DummyDeliveryTimeProperties dummyDeliveryTimeProperties;
 
     /**
      * 실제 배송이 아니라 더미 데이터들로 랜덤한 시간을 두고 배송 절차를 밟는다.
@@ -51,8 +55,8 @@ public class DummyDeliveryService {
             ThreadLocalRandom current = ThreadLocalRandom.current();
 
             long sleep = current.nextLong(
-                    Duration.ofSeconds(30).toMillis(),
-                    Duration.ofSeconds(60).toMillis()
+                    Duration.ofSeconds(dummyDeliveryTimeProperties.getAcceptMinSeconds()).toMillis(),
+                    Duration.ofSeconds(dummyDeliveryTimeProperties.getAcceptMaxSeconds()).toMillis()
             );
 
             // 10% 확률로 거절함.
@@ -68,7 +72,11 @@ public class DummyDeliveryService {
 
             // 거절이면 끝
             if (DeliveryStateCode.A6.equals(deliveryStateCode)) {
-                deliveryCallbackService.changeStateAndCallback(deliveryInfoId, callbackUrl, callbackId, deliveryStateCode);
+                try {
+                    deliveryCallbackService.changeStateAndCallback(deliveryInfoId, callbackUrl, callbackId, deliveryStateCode);
+                } catch (RestClientException e) { // 콜백에서 에러가 나도 배송은 계속 진행한다.
+                    log.error(CALLBACK_SERVER_ERROR, e.getMessage(), e);
+                }
                 return;
             }
 
@@ -81,27 +89,35 @@ public class DummyDeliveryService {
 
             if (driverPage.isEmpty()) {
                 log.error("기사가 없습니다.");
-                deliveryCallbackService.changeStateAndCallback(deliveryInfoId, callbackUrl, callbackId, DeliveryStateCode.A6);
+                try {
+                    deliveryCallbackService.changeStateAndCallback(deliveryInfoId, callbackUrl, callbackId, DeliveryStateCode.A6);
+                } catch (RestClientException e) { // 콜백에서 에러가 나도 배송은 계속 진행한다.
+                    log.error(CALLBACK_SERVER_ERROR, e.getMessage(), e);
+                }
                 return;
             }
 
             DeliveryDriverEntity deliveryDriverEntity = content.get(0);
             long driverId = deliveryDriverEntity.getDeliveryDriverId();
 
-            deliveryCallbackService.matchDriver(deliveryInfoId, callbackUrl, callbackId, driverId);
+            try {
+                deliveryCallbackService.matchDriver(deliveryInfoId, callbackUrl, callbackId, driverId);
+            } catch (RestClientException e) { // 콜백에서 에러가 나도 배송은 계속 진행한다.
+                log.error(CALLBACK_SERVER_ERROR, e.getMessage(), e);
+            }
 
             // 기사가 음식을 집고 배송
             // 만약 조리 예정 시간이 현재 시간보다 전일때 (이미 요리가 완료 됨)
             if (prepDatetime.isBefore(LocalDateTime.now())) {
                 sleep = current.nextLong(
-                        Duration.ofSeconds(30).toMillis(),
-                        Duration.ofSeconds(60).toMillis()
+                        Duration.ofSeconds(dummyDeliveryTimeProperties.getDeliveryMinSeconds()).toMillis(),
+                        Duration.ofSeconds(dummyDeliveryTimeProperties.getDeliveryMaxSeconds()).toMillis()
                 );
             } else {
                 Duration between = Duration.between(LocalDateTime.now(), prepDatetime);
                 sleep = current.nextLong(
-                        between.plusSeconds(30).toMillis(),
-                        between.plusSeconds(60).toMillis()
+                        between.plusSeconds(dummyDeliveryTimeProperties.getDeliveryMinSeconds()).toMillis(),
+                        between.plusSeconds(dummyDeliveryTimeProperties.getDeliveryMaxSeconds()).toMillis()
                 );
             }
 
@@ -117,12 +133,16 @@ public class DummyDeliveryService {
                 log.info(THREAD_INTERRUPTED, e.getMessage(), e);
             }
 
-            deliveryCallbackService.changeStateAndCallback(deliveryInfoId, callbackUrl, callbackId, deliveryStateCode);
+            try {
+                deliveryCallbackService.changeStateAndCallback(deliveryInfoId, callbackUrl, callbackId, deliveryStateCode);
+            } catch (RestClientException e) { // 콜백에서 에러가 나도 배송은 계속 진행한다.
+                log.error(CALLBACK_SERVER_ERROR, e.getMessage(), e);
+            }
 
             // 배송 완료
             sleep = current.nextLong(
-                    Duration.ofMinutes(3).toMillis(),
-                    Duration.ofMinutes(15).toMillis()
+                    Duration.ofSeconds(dummyDeliveryTimeProperties.getFinishMinSeconds()).toMillis(),
+                    Duration.ofSeconds(dummyDeliveryTimeProperties.getFinishMaxSeconds()).toMillis()
             );
 
             deliveryStateCode = DeliveryStateCode.A4;
@@ -135,7 +155,11 @@ public class DummyDeliveryService {
                 log.info(THREAD_INTERRUPTED, e.getMessage(), e);
             }
 
-            deliveryCallbackService.changeStateAndCallback(deliveryInfoId, callbackUrl, callbackId, deliveryStateCode);
+            try {
+                deliveryCallbackService.changeStateAndCallback(deliveryInfoId, callbackUrl, callbackId, deliveryStateCode);
+            } catch (RestClientException e) { // 콜백에서 에러가 나도 배송은 계속 진행한다.
+                log.error(CALLBACK_SERVER_ERROR, e.getMessage(), e);
+            }
 
         }).start();
     }

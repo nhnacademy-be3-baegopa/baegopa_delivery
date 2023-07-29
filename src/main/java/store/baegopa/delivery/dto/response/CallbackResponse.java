@@ -3,6 +3,7 @@ package store.baegopa.delivery.dto.response;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.ToString;
 import store.baegopa.delivery.entity.code.DeliveryStateCode;
 
 /**
@@ -19,6 +20,7 @@ import store.baegopa.delivery.entity.code.DeliveryStateCode;
  */
 @Builder
 @Getter
+@ToString
 public class CallbackResponse {
     private String callbackId;
     private DeliveryStateCode deliveryStateCode;

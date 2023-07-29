@@ -15,7 +15,7 @@ import store.baegopa.delivery.entity.DeliveryStateHistoryEntity;
 import store.baegopa.delivery.entity.code.DeliveryStateCode;
 import store.baegopa.delivery.repository.DeliveryDriverRepository;
 import store.baegopa.delivery.repository.DeliveryInfoRepository;
-import store.baegopa.delivery.repository.DeliveryStatusHistoryRepository;
+import store.baegopa.delivery.repository.DeliveryStateHistoryRepository;
 
 /**
  * 배송 상태가 변경 될 때 응답 콜백 서비스
@@ -36,7 +36,7 @@ public class DeliveryCallbackService {
     private final RestTemplate restTemplate;
     private final DeliveryDriverRepository deliveryDriverRepository;
     private final DeliveryInfoRepository deliveryInfoRepository;
-    private final DeliveryStatusHistoryRepository deliveryStatusHistoryRepository;
+    private final DeliveryStateHistoryRepository deliveryStateHistoryRepository;
 
     /**
      * 기사를 매칭한다.
@@ -57,7 +57,7 @@ public class DeliveryCallbackService {
 
         deliveryInfoEntity.setDeliveryDriverEntity(deliveryDriverEntity);
 
-        deliveryStatusHistoryRepository.save(DeliveryStateHistoryEntity.builder()
+        deliveryStateHistoryRepository.save(DeliveryStateHistoryEntity.builder()
                 .deliveryInfoEntity(deliveryInfoEntity)
                 .deliveryStateCode(DeliveryStateCode.A2)
                 .build());
@@ -88,7 +88,7 @@ public class DeliveryCallbackService {
                                        String callbackUrl,
                                        String callbackId,
                                        DeliveryStateCode deliveryStateCode) {
-        deliveryStatusHistoryRepository.save(DeliveryStateHistoryEntity.builder()
+        deliveryStateHistoryRepository.save(DeliveryStateHistoryEntity.builder()
                 .deliveryInfoEntity(deliveryInfoRepository.getReferenceById(deliveryInfoId))
                 .deliveryStateCode(deliveryStateCode)
                 .build());

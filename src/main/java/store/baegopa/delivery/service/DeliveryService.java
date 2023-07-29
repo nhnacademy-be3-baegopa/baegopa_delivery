@@ -5,7 +5,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import store.baegopa.delivery.dto.request.DeliveryRequestRequest;
 import store.baegopa.delivery.entity.DeliveryInfoEntity;
+import store.baegopa.delivery.entity.DeliveryStateHistoryEntity;
+import store.baegopa.delivery.entity.code.DeliveryStateCode;
 import store.baegopa.delivery.repository.DeliveryInfoRepository;
+import store.baegopa.delivery.repository.DeliveryStateHistoryRepository;
 
 /**
  * 배송 서비스
@@ -23,6 +26,7 @@ import store.baegopa.delivery.repository.DeliveryInfoRepository;
 @RequiredArgsConstructor
 public class DeliveryService {
     private final DeliveryInfoRepository deliveryInfoRepository;
+    private final DeliveryStateHistoryRepository deliveryStateHistoryRepository;
     private final DummyDeliveryService dummyDeliveryService;
 
     /**
@@ -33,18 +37,23 @@ public class DeliveryService {
      */
     @Transactional
     public void deliveryRequest(DeliveryRequestRequest deliveryRequestRequest) {
-        Long deliveryInfoId = deliveryInfoRepository.save(DeliveryInfoEntity.builder()
+        DeliveryInfoEntity deliveryInfoEntity = deliveryInfoRepository.save(DeliveryInfoEntity.builder()
                 .deliveryAddress(deliveryRequestRequest.getDeliveryAddress())
                 .prepDatetime(deliveryRequestRequest.getPrepDatetime())
                 .price(deliveryRequestRequest.getPrice())
                 .reqStore(deliveryRequestRequest.getReqStore())
                 .reqStoreAddress(deliveryRequestRequest.getReqStoreAddress())
                 .reqMemo(deliveryRequestRequest.getReqMemo())
-                .build()).getDeliveryInfoId();
+                .build());
+
+        deliveryStateHistoryRepository.save(DeliveryStateHistoryEntity.builder()
+                .deliveryInfoEntity(deliveryInfoEntity)
+                .deliveryStateCode(DeliveryStateCode.A1)
+                .build());
 
         // 더미 배송 시스템을 실행시킨다.
         dummyDeliveryService.startDummyDelivery(
-                deliveryInfoId,
+                deliveryInfoEntity.getDeliveryInfoId(),
                 deliveryRequestRequest.getCallbackUrl(),
                 deliveryRequestRequest.getCallbackId(),
                 deliveryRequestRequest.getPrepDatetime());

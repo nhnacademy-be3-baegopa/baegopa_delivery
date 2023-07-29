@@ -1,6 +1,14 @@
 store:
   baegopa:
     delivery:
+      dummy-delivery-time:
+        acceptMinSeconds: 30
+        acceptMaxSeconds: 60
+        deliveryMinSeconds: 60
+        deliveryMaxSeconds: 300
+        finishMinSeconds: 180
+        finishMaxSeconds: 1500
+
       database:
         url: "88278bfc57534f14a0a215afa89f6b5a"
         username: "ded64cb3e6d541718b781e39fbe39959"

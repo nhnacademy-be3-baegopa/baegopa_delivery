@@ -1,0 +1,46 @@
+store:
+  baegopa:
+    delivery:
+      dummy-delivery-time:
+        acceptMinSeconds: 0
+        acceptMaxSeconds: 1
+        deliveryMinSeconds: 0
+        deliveryMaxSeconds: 1
+        finishMinSeconds: 0
+        finishMaxSeconds: 1
+
+spring:
+  datasource:
+    type: org.apache.commons.dbcp2.BasicDataSource
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:testdb;DATABASE_TO_UPPER=false;MODE=MySQL
+    username: sa
+    password: ""
+
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    database: h2
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        highlight_sql: true
+        globally_quoted_identifiers: true
+        show_sql: false
+        dialect: org.hibernate.dialect.H2Dialect
+    generate-ddl: true
+
+logging:
+  level: # 상세한 로그를 보고 싶으면 debug or trace
+    store:
+      baegopa: debug
+
+    sql: debug
+    root: info
+    web: debug
+    org:
+      springframework: info
+
+
+debug: false # 상세한 로그를 보고 싶으면 true

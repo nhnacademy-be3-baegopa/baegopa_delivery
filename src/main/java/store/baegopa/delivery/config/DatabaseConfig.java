@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 
 /**
  * Database 설정
@@ -30,6 +31,7 @@ public class DatabaseConfig {
      * @return DataSource
      */
     @Bean
+    @Profile("!test")
     public DataSource dataSource() {
         BasicDataSource dataSource = new BasicDataSource();
 

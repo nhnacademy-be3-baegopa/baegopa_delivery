@@ -15,6 +15,5 @@ import store.baegopa.delivery.entity.DeliveryStateHistoryEntity;
  * @author 김현준
  * @since 2023/07/28
  */
-public interface DeliveryStatusHistoryRepository extends JpaRepository<DeliveryStateHistoryEntity, Long> {
-
+public interface DeliveryStateHistoryRepository extends JpaRepository<DeliveryStateHistoryEntity, Long> {
 }
