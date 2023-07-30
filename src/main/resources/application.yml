@@ -1,0 +1,27 @@
+server:
+  port: 8086
+  shutdown: graceful
+
+spring:
+  profiles:
+    active: dev
+  datasource:
+    type: org.apache.commons.dbcp2.BasicDataSource
+  application:
+    name: baegopa-delivery
+
+  config:
+    import: optional:classpath:secret.yml #,optional:file:/key/secret.yml
+
+  jpa:
+    database: mysql
+    generate-ddl: false
+    properties:
+      hibernate:
+        format_sql: true
+        highlight_sql: false
+        show_sql: false
+        globally_quoted_identifiers: true
+        dialect: org.hibernate.dialect.MySQL8Dialect
+    hibernate:
+      ddl-auto: none

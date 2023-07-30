@@ -175,3 +175,9 @@ Temporary Items
 
 # javadoc 설정 파일은 올라가야함.
 !.idea/intellij-javadocs-*
+
+# logs 폴더 무시
+/logs/**
+
+# 인증서 깃 제외
+# *.p12 # TODO 추후 보안
