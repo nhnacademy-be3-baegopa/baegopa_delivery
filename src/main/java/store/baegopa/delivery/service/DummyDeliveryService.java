@@ -3,6 +3,7 @@ package store.baegopa.delivery.service;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -51,116 +52,191 @@ public class DummyDeliveryService {
                                    String callbackId,
                                    LocalDateTime prepDatetime) {
         new Thread(() -> {
-            // 실제 드라이버가 콜을 받는 것이 아니라 임의로 수락 혹은 거절을 한다.
-            ThreadLocalRandom current = ThreadLocalRandom.current();
 
-            long sleep = current.nextLong(
-                    Duration.ofSeconds(dummyDeliveryTimeProperties.getAcceptMinSeconds()).toMillis(),
-                    Duration.ofSeconds(dummyDeliveryTimeProperties.getAcceptMaxSeconds()).toMillis()
-            );
-
-            // 10% 확률로 거절함.
-            DeliveryStateCode deliveryStateCode = current.nextInt(100) < 90 ? DeliveryStateCode.A2 : DeliveryStateCode.A6;
-            log.info(LOG_FORMAT, Duration.ofMillis(sleep).toSeconds(), deliveryStateCode.getName());
-
-            try {
-                Thread.sleep(sleep);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                log.info(THREAD_INTERRUPTED, e.getMessage(), e);
-            }
+            // 90% 확률로 수락
+            DeliveryStateCode deliveryStateCode = acceptOrReject(90);
 
             // 거절이면 끝
             if (DeliveryStateCode.A6.equals(deliveryStateCode)) {
-                try {
-                    deliveryCallbackService.changeStateAndCallback(deliveryInfoId, callbackUrl, callbackId, deliveryStateCode);
-                } catch (RestClientException e) { // 콜백에서 에러가 나도 배송은 계속 진행한다.
-                    log.error(CALLBACK_SERVER_ERROR, e.getMessage(), e);
-                }
+                changeStateAndCallback(deliveryInfoId, callbackUrl, callbackId, deliveryStateCode);
                 return;
             }
 
             // 수락이면 임의의 드라이버를 찾는다.
-            long count = deliveryDriverRepository.count();
-            int index = current.nextInt((int) count);
+            Optional<DeliveryDriverEntity> driver = findDriver();
 
-            Page<DeliveryDriverEntity> driverPage = deliveryDriverRepository.findAll(PageRequest.of(index, 1));
-            List<DeliveryDriverEntity> content = driverPage.getContent();
-
-            if (driverPage.isEmpty()) {
-                log.error("기사가 없습니다.");
-                try {
-                    deliveryCallbackService.changeStateAndCallback(deliveryInfoId, callbackUrl, callbackId, DeliveryStateCode.A6);
-                } catch (RestClientException e) { // 콜백에서 에러가 나도 배송은 계속 진행한다.
-                    log.error(CALLBACK_SERVER_ERROR, e.getMessage(), e);
-                }
+            if (driver.isEmpty()) {
+                deliveryStateCode = DeliveryStateCode.A6;
+                changeStateAndCallback(deliveryInfoId, callbackUrl, callbackId, deliveryStateCode);
                 return;
             }
 
-            DeliveryDriverEntity deliveryDriverEntity = content.get(0);
-            long driverId = deliveryDriverEntity.getDeliveryDriverId();
+            long driverId = driver.get().getDeliveryDriverId();
 
-            try {
-                deliveryCallbackService.matchDriver(deliveryInfoId, callbackUrl, callbackId, driverId);
-            } catch (RestClientException e) { // 콜백에서 에러가 나도 배송은 계속 진행한다.
-                log.error(CALLBACK_SERVER_ERROR, e.getMessage(), e);
-            }
+            matchDriver(deliveryInfoId, callbackUrl, callbackId, driverId);
 
             // 기사가 음식을 집고 배송
             // 만약 조리 예정 시간이 현재 시간보다 전일때 (이미 요리가 완료 됨)
-            if (prepDatetime.isBefore(LocalDateTime.now())) {
-                sleep = current.nextLong(
-                        Duration.ofSeconds(dummyDeliveryTimeProperties.getDeliveryMinSeconds()).toMillis(),
-                        Duration.ofSeconds(dummyDeliveryTimeProperties.getDeliveryMaxSeconds()).toMillis()
-                );
-            } else {
-                Duration between = Duration.between(LocalDateTime.now(), prepDatetime);
-                sleep = current.nextLong(
-                        between.plusSeconds(dummyDeliveryTimeProperties.getDeliveryMinSeconds()).toMillis(),
-                        between.plusSeconds(dummyDeliveryTimeProperties.getDeliveryMaxSeconds()).toMillis()
-                );
-            }
+            deliveryStateCode = driverGoStore(prepDatetime);
 
-
-            deliveryStateCode = DeliveryStateCode.A3;
-            log.info(LOG_FORMAT, Duration.ofMillis(sleep).toSeconds(), deliveryStateCode.getName());
-            log.info("{}", Duration.ofMillis(sleep).toString());
-
-            try {
-                Thread.sleep(sleep);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                log.info(THREAD_INTERRUPTED, e.getMessage(), e);
-            }
-
-            try {
-                deliveryCallbackService.changeStateAndCallback(deliveryInfoId, callbackUrl, callbackId, deliveryStateCode);
-            } catch (RestClientException e) { // 콜백에서 에러가 나도 배송은 계속 진행한다.
-                log.error(CALLBACK_SERVER_ERROR, e.getMessage(), e);
-            }
+            changeStateAndCallback(deliveryInfoId, callbackUrl, callbackId, deliveryStateCode);
 
             // 배송 완료
-            sleep = current.nextLong(
-                    Duration.ofSeconds(dummyDeliveryTimeProperties.getFinishMinSeconds()).toMillis(),
-                    Duration.ofSeconds(dummyDeliveryTimeProperties.getFinishMaxSeconds()).toMillis()
-            );
+            deliveryStateCode = goDelivery();
 
-            deliveryStateCode = DeliveryStateCode.A4;
-            log.info(LOG_FORMAT, Duration.ofMillis(sleep).toSeconds(), deliveryStateCode.getName());
-
-            try {
-                Thread.sleep(sleep);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                log.info(THREAD_INTERRUPTED, e.getMessage(), e);
-            }
-
-            try {
-                deliveryCallbackService.changeStateAndCallback(deliveryInfoId, callbackUrl, callbackId, deliveryStateCode);
-            } catch (RestClientException e) { // 콜백에서 에러가 나도 배송은 계속 진행한다.
-                log.error(CALLBACK_SERVER_ERROR, e.getMessage(), e);
-            }
+            changeStateAndCallback(deliveryInfoId, callbackUrl, callbackId, deliveryStateCode);
 
         }).start();
+    }
+
+    /**
+     * 수락 or 거절 한다
+     *
+     * @param acceptPercent 수락 확률
+     * @return DeliveryStateCode 수락 or 거절
+     * @author 김현준
+     */
+    private DeliveryStateCode acceptOrReject(int acceptPercent) {
+        // 실제 드라이버가 콜을 받는 것이 아니라 임의로 수락 혹은 거절을 한다.
+        ThreadLocalRandom current = ThreadLocalRandom.current();
+
+        long sleep = current.nextLong(
+                Duration.ofSeconds(dummyDeliveryTimeProperties.getAcceptMinSeconds()).toMillis(),
+                Duration.ofSeconds(dummyDeliveryTimeProperties.getAcceptMaxSeconds()).toMillis()
+        );
+
+        // 10% 확률로 거절함.
+        DeliveryStateCode deliveryStateCode = current.nextInt(100) < acceptPercent ? DeliveryStateCode.A2 : DeliveryStateCode.A6;
+        log.info(LOG_FORMAT, Duration.ofMillis(sleep).toSeconds(), deliveryStateCode.getName());
+
+        sleep(sleep);
+
+        return deliveryStateCode;
+    }
+
+    /**
+     * 랜덤한 드라이버를 찾는다.
+     *
+     * @return Optional DeliveryDriverEntity
+     * @author 김현준
+     */
+    private Optional<DeliveryDriverEntity> findDriver() {
+        ThreadLocalRandom current = ThreadLocalRandom.current();
+
+        long count = deliveryDriverRepository.count();
+        int index = current.nextInt((int) count);
+
+        Page<DeliveryDriverEntity> driverPage = deliveryDriverRepository.findAll(PageRequest.of(index, 1));
+        List<DeliveryDriverEntity> content = driverPage.getContent();
+
+        if (driverPage.isEmpty()) {
+            log.error("기사가 없습니다.");
+            return Optional.empty();
+        }
+
+        return Optional.of(content.get(0));
+    }
+
+    /**
+     * 기사가 가게에 가서 음식을 픽업한다.
+     *
+     * @param prepDatetime prepDatetime
+     * @return DeliveryStateCode 배송중
+     * @author 김현준
+     */
+    private DeliveryStateCode driverGoStore(LocalDateTime prepDatetime) {
+        ThreadLocalRandom current = ThreadLocalRandom.current();
+
+        long sleep;
+
+        if (prepDatetime.isBefore(LocalDateTime.now())) {
+            sleep = current.nextLong(
+                    Duration.ofSeconds(dummyDeliveryTimeProperties.getDeliveryMinSeconds()).toMillis(),
+                    Duration.ofSeconds(dummyDeliveryTimeProperties.getDeliveryMaxSeconds()).toMillis()
+            );
+        } else {
+            Duration between = Duration.between(LocalDateTime.now(), prepDatetime);
+            sleep = current.nextLong(
+                    between.plusSeconds(dummyDeliveryTimeProperties.getDeliveryMinSeconds()).toMillis(),
+                    between.plusSeconds(dummyDeliveryTimeProperties.getDeliveryMaxSeconds()).toMillis()
+            );
+        }
+
+        log.info(LOG_FORMAT, Duration.ofMillis(sleep).toSeconds(), DeliveryStateCode.A3.getName());
+        log.info("{}", Duration.ofMillis(sleep).toString());
+
+        sleep(sleep);
+
+        return DeliveryStateCode.A3;
+    }
+
+    /**
+     * 배달을 간다.
+     *
+     * @return DeliveryStateCode 배송완료
+     * @author 김현준
+     */
+    private DeliveryStateCode goDelivery() {
+        ThreadLocalRandom current = ThreadLocalRandom.current();
+
+        long sleep = current.nextLong(
+                Duration.ofSeconds(dummyDeliveryTimeProperties.getFinishMinSeconds()).toMillis(),
+                Duration.ofSeconds(dummyDeliveryTimeProperties.getFinishMaxSeconds()).toMillis()
+        );
+
+        log.info(LOG_FORMAT, Duration.ofMillis(sleep).toSeconds(), DeliveryStateCode.A4.getName());
+
+        sleep(sleep);
+
+        return DeliveryStateCode.A4;
+    }
+
+    /**
+     * 대기 시간을 갖기 위해 멈춘다.
+     *
+     * @param sleep sleepTime millis
+     * @author 김현준
+     */
+    private void sleep(long sleep) {
+        try {
+            Thread.sleep(sleep);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.info(THREAD_INTERRUPTED, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 상태변경 콜백에서 오류가 나도 계속 진행한다.
+     *
+     * @param deliveryInfoId    deliveryInfoId
+     * @param callbackUrl       callbackUrl
+     * @param callbackId        callbackId
+     * @param deliveryStateCode deliveryStateCode
+     * @author 김현준
+     */
+    private void changeStateAndCallback(long deliveryInfoId, String callbackUrl, String callbackId, DeliveryStateCode deliveryStateCode) {
+        try {
+            deliveryCallbackService.changeStateAndCallback(deliveryInfoId, callbackUrl, callbackId, deliveryStateCode);
+        } catch (RestClientException e) { // 콜백에서 에러가 나도 배송은 계속 진행한다.
+            log.error(CALLBACK_SERVER_ERROR, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 기사매칭 콜백에서 오류가 나도 계속 진행한다.
+     *
+     * @param deliveryInfoId deliveryInfoId
+     * @param callbackUrl    callbackUrl
+     * @param callbackId     callbackId
+     * @param driverId       driverId
+     * @author 김현준
+     */
+    private void matchDriver(long deliveryInfoId, String callbackUrl, String callbackId, long driverId) {
+        try {
+            deliveryCallbackService.matchDriver(deliveryInfoId, callbackUrl, callbackId, driverId);
+        } catch (RestClientException e) { // 콜백에서 에러가 나도 배송은 계속 진행한다.
+            log.error(CALLBACK_SERVER_ERROR, e.getMessage(), e);
+        }
     }
 }

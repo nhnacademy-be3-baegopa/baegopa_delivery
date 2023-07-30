@@ -2,12 +2,12 @@ store:
   baegopa:
     delivery:
       dummy-delivery-time:
-        acceptMinSeconds: 0
-        acceptMaxSeconds: 1
-        deliveryMinSeconds: 0
-        deliveryMaxSeconds: 1
-        finishMinSeconds: 0
-        finishMaxSeconds: 1
+        acceptMinSeconds: 1
+        acceptMaxSeconds: 5
+        deliveryMinSeconds: 1
+        deliveryMaxSeconds: 5
+        finishMinSeconds: 1
+        finishMaxSeconds: 5
 
 spring:
   datasource:
