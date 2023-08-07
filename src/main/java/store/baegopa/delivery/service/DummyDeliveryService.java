@@ -119,7 +119,7 @@ public class DummyDeliveryService {
         public void run() {
             try {
                 // 90% 확률로 수락
-                DeliveryStateCode deliveryStateCode = acceptOrReject(10);
+                DeliveryStateCode deliveryStateCode = acceptOrReject(90);
 
                 // 거절이면 끝
                 if (DeliveryStateCode.A6.equals(deliveryStateCode)) {
