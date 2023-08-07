@@ -3,15 +3,12 @@ package store.baegopa.delivery.util;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import javax.net.ssl.SSLContext;
@@ -76,14 +73,14 @@ public class SecureKeyManager {
             UnrecoverableKeyException, KeyManagementException {
         KeyStore clientStore = KeyStore.getInstance("PKCS12");
 
-        boolean isProd = Arrays.asList(environment.getActiveProfiles()).contains("prod");
+        // boolean isProd = Arrays.asList(environment.getActiveProfiles()).contains("prod");
 
         InputStream result;
-        if (isProd) {
-            result = Files.newInputStream(Path.of("/key/baegopa-project.p12"));
-        } else {
-            result = new ClassPathResource("baegopa-project.p12").getInputStream();
-        }
+        // if (isProd) {
+        //     result = Files.newInputStream(Path.of("/key/baegopa-project.p12"));
+        // } else {
+        result = new ClassPathResource("baegopa-project.p12").getInputStream();
+        // }
 
         clientStore.load(result, password.toCharArray());
 
