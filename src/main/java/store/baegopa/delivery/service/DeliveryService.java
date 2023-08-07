@@ -3,6 +3,7 @@ package store.baegopa.delivery.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import store.baegopa.delivery.dto.request.DeliveryCancelRequest;
 import store.baegopa.delivery.dto.request.DeliveryRequestRequest;
 import store.baegopa.delivery.entity.DeliveryInfoEntity;
 import store.baegopa.delivery.entity.DeliveryStateHistoryEntity;
@@ -57,5 +58,20 @@ public class DeliveryService {
                 deliveryRequestRequest.getCallbackUrl(),
                 deliveryRequestRequest.getCallbackId(),
                 deliveryRequestRequest.getPrepDatetime());
+    }
+
+    /**
+     * 배송을 취소한다.
+     *
+     * @param deliveryCancelRequest deliveryCancelRequest
+     * @author 김현준
+     */
+    public void deliveryCancel(DeliveryCancelRequest deliveryCancelRequest) {
+        long deliveryInfoId = dummyDeliveryService.stopDummyDelivery(deliveryCancelRequest.getCallbackId());
+
+        deliveryStateHistoryRepository.save(DeliveryStateHistoryEntity.builder()
+                .deliveryInfoEntity(deliveryInfoRepository.getReferenceById(deliveryInfoId))
+                .deliveryStateCode(DeliveryStateCode.A5)
+                .build());
     }
 }

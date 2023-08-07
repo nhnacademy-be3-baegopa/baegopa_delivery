@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import store.baegopa.delivery.dto.request.DeliveryCancelRequest;
 import store.baegopa.delivery.dto.request.DeliveryRequestRequest;
 import store.baegopa.delivery.service.DeliveryService;
 
@@ -33,4 +34,11 @@ public class DeliveryController {
     public void getDeliveryRequest(@RequestBody DeliveryRequestRequest deliveryRequestRequest) {
         deliveryService.deliveryRequest(deliveryRequestRequest);
     }
+
+    @PostMapping("/cancel")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void cancelDelivery(@RequestBody DeliveryCancelRequest deliveryCancelRequest) {
+        deliveryService.deliveryCancel(deliveryCancelRequest);
+    }
+
 }
