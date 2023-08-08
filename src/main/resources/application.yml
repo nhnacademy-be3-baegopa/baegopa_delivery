@@ -25,3 +25,9 @@ spring:
         dialect: org.hibernate.dialect.MySQL8Dialect
     hibernate:
       ddl-auto: none
+
+  mvc:
+    static-path-pattern: /static/**
+    view:
+      prefix: /static/docs/
+      suffix: .html
