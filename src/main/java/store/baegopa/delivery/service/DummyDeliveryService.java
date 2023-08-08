@@ -14,6 +14,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import store.baegopa.delivery.config.DummyDeliveryTimeProperties;
+import store.baegopa.delivery.dto.request.DeliveryRequestRequest;
 import store.baegopa.delivery.entity.DeliveryDriverEntity;
 import store.baegopa.delivery.entity.code.DeliveryStateCode;
 import store.baegopa.delivery.exception.DeliveryException;
@@ -58,31 +59,65 @@ public class DummyDeliveryService {
         }
 
         thread.interrupt();
+
+        changeStateAndCallback(thread.deliveryInfoId, thread.callbackUrl, thread.callbackId, DeliveryStateCode.A5);
+
         return thread.deliveryInfoId;
     }
 
     /**
      * 실제 배송이 아니라 더미 데이터들로 랜덤한 시간을 두고 배송 절차를 밟는다.
      *
-     * @param deliveryInfoId deliveryInfoId
-     * @param callbackUrl    callbackUrl
-     * @param callbackId     callbackId
+     * @param deliveryInfoId         deliveryInfoId
+     * @param deliveryRequestRequest deliveryRequestRequest
      * @author 김현준
      */
     public void startDummyDelivery(long deliveryInfoId,
-                                   String callbackUrl,
-                                   String callbackId,
-                                   LocalDateTime prepDatetime) {
+                                   DeliveryRequestRequest deliveryRequestRequest) {
+
+        String callbackId = deliveryRequestRequest.getCallbackId();
+        String callbackUrl = deliveryRequestRequest.getCallbackUrl();
+        LocalDateTime prepDatetime = deliveryRequestRequest.getPrepDatetime();
 
         // 이미 동일한 콜백 ID로 진행중인 건이 있다면 오류 발생
         if (dummyThreadMap.containsKey(callbackId)) {
             throw new DeliveryException("이미 동일한 콜백 ID로 진행중인 배송이 있습니다.");
         }
 
-        DummyThread thread = new DummyThread(deliveryInfoId, callbackUrl, callbackId, prepDatetime);
+        DummyThread thread;
+
+        if (deliveryRequestRequest.isSetTime()) {
+            thread = new DummyThread(deliveryInfoId, callbackUrl, callbackId, prepDatetime,
+                    deliveryRequestRequest.getAcceptMinSeconds(),
+                    deliveryRequestRequest.getAcceptMaxSeconds(),
+                    deliveryRequestRequest.getDeliveryMinSeconds(),
+                    deliveryRequestRequest.getDeliveryMaxSeconds(),
+                    deliveryRequestRequest.getFinishMinSeconds(),
+                    deliveryRequestRequest.getFinishMaxSeconds(),
+                    deliveryRequestRequest.getAcceptPercent());
+        } else {
+            thread = new DummyThread(deliveryInfoId, callbackUrl, callbackId, prepDatetime);
+        }
 
         dummyThreadMap.put(callbackId, thread);
         thread.start();
+    }
+
+    /**
+     * 상태변경 콜백, 오류가 나도 계속 진행한다.
+     *
+     * @param deliveryInfoId    deliveryInfoId
+     * @param callbackUrl       callbackUrl
+     * @param callbackId        callbackId
+     * @param deliveryStateCode deliveryStateCode
+     * @author 김현준
+     */
+    private void changeStateAndCallback(long deliveryInfoId, String callbackUrl, String callbackId, DeliveryStateCode deliveryStateCode) {
+        try {
+            deliveryCallbackService.changeStateAndCallback(deliveryInfoId, callbackUrl, callbackId, deliveryStateCode);
+        } catch (RestClientException e) { // 콜백에서 에러가 나도 배송은 계속 진행한다.
+            log.error(CALLBACK_SERVER_ERROR, e.getMessage(), e);
+        }
     }
 
     /**
@@ -94,6 +129,17 @@ public class DummyDeliveryService {
         private final String callbackUrl;
         private final String callbackId;
         private final LocalDateTime prepDatetime;
+
+        private final Integer acceptMinSeconds;
+        private final Integer acceptMaxSeconds;
+
+        private final Integer deliveryMinSeconds;
+        private final Integer deliveryMaxSeconds;
+
+        private final Integer finishMinSeconds;
+        private final Integer finishMaxSeconds;
+
+        private final Integer acceptPercent;
 
         /**
          * 생성자
@@ -113,13 +159,61 @@ public class DummyDeliveryService {
             this.callbackUrl = callbackUrl;
             this.callbackId = callbackId;
             this.prepDatetime = prepDatetime;
+
+            this.acceptMinSeconds = dummyDeliveryTimeProperties.getAcceptMinSeconds();
+            this.acceptMaxSeconds = dummyDeliveryTimeProperties.getAcceptMaxSeconds();
+            this.deliveryMinSeconds = dummyDeliveryTimeProperties.getDeliveryMinSeconds();
+            this.deliveryMaxSeconds = dummyDeliveryTimeProperties.getDeliveryMaxSeconds();
+            this.finishMinSeconds = dummyDeliveryTimeProperties.getFinishMinSeconds();
+            this.finishMaxSeconds = dummyDeliveryTimeProperties.getAcceptMaxSeconds();
+            this.acceptPercent = 90;
+        }
+
+        /**
+         * 생성자. 시간 및 수락 확률을 직접 지정한다.
+         *
+         * @param deliveryInfoId     deliveryInfoId
+         * @param callbackUrl        callbackUrl
+         * @param callbackId         callbackId
+         * @param prepDatetime       prepDatetime
+         * @param acceptMinSeconds   acceptMinSeconds
+         * @param acceptMaxSeconds   acceptMaxSeconds
+         * @param deliveryMinSeconds deliveryMinSeconds
+         * @param deliveryMaxSeconds deliveryMaxSeconds
+         * @param finishMinSeconds   finishMinSeconds
+         * @param finishMaxSeconds   finishMaxSeconds
+         * @param acceptPercent      acceptPercent
+         * @author 김현준
+         */
+        public DummyThread(long deliveryInfoId,
+                           String callbackUrl,
+                           String callbackId,
+                           LocalDateTime prepDatetime,
+                           Integer acceptMinSeconds,
+                           Integer acceptMaxSeconds,
+                           Integer deliveryMinSeconds,
+                           Integer deliveryMaxSeconds,
+                           Integer finishMinSeconds,
+                           Integer finishMaxSeconds,
+                           Integer acceptPercent) {
+            this.deliveryInfoId = deliveryInfoId;
+            this.callbackUrl = callbackUrl;
+            this.callbackId = callbackId;
+            this.prepDatetime = prepDatetime;
+            this.acceptMinSeconds = acceptMinSeconds;
+            this.acceptMaxSeconds = acceptMaxSeconds;
+            this.deliveryMinSeconds = deliveryMinSeconds;
+            this.deliveryMaxSeconds = deliveryMaxSeconds;
+            this.finishMinSeconds = finishMinSeconds;
+            this.finishMaxSeconds = finishMaxSeconds;
+            this.acceptPercent = acceptPercent;
         }
 
         @Override
         public void run() {
             try {
                 // 90% 확률로 수락
-                DeliveryStateCode deliveryStateCode = acceptOrReject(90);
+                DeliveryStateCode deliveryStateCode = acceptOrReject(acceptPercent);
 
                 // 거절이면 끝
                 if (DeliveryStateCode.A6.equals(deliveryStateCode)) {
@@ -184,8 +278,8 @@ public class DummyDeliveryService {
             ThreadLocalRandom current = ThreadLocalRandom.current();
 
             long sleep = current.nextLong(
-                    Duration.ofSeconds(dummyDeliveryTimeProperties.getAcceptMinSeconds()).toMillis(),
-                    Duration.ofSeconds(dummyDeliveryTimeProperties.getAcceptMaxSeconds()).toMillis()
+                    Duration.ofSeconds(acceptMinSeconds).toMillis(),
+                    Duration.ofSeconds(acceptMaxSeconds).toMillis()
             );
 
             // 10% 확률로 거절함.
@@ -234,14 +328,14 @@ public class DummyDeliveryService {
 
             if (prepDatetime.isBefore(LocalDateTime.now())) {
                 sleep = current.nextLong(
-                        Duration.ofSeconds(dummyDeliveryTimeProperties.getDeliveryMinSeconds()).toMillis(),
-                        Duration.ofSeconds(dummyDeliveryTimeProperties.getDeliveryMaxSeconds()).toMillis()
+                        Duration.ofSeconds(deliveryMinSeconds).toMillis(),
+                        Duration.ofSeconds(deliveryMaxSeconds).toMillis()
                 );
             } else {
                 Duration between = Duration.between(LocalDateTime.now(), prepDatetime);
                 sleep = current.nextLong(
-                        between.plusSeconds(dummyDeliveryTimeProperties.getDeliveryMinSeconds()).toMillis(),
-                        between.plusSeconds(dummyDeliveryTimeProperties.getDeliveryMaxSeconds()).toMillis()
+                        between.plusSeconds(deliveryMinSeconds).toMillis(),
+                        between.plusSeconds(deliveryMaxSeconds).toMillis()
                 );
             }
 
@@ -263,8 +357,8 @@ public class DummyDeliveryService {
             ThreadLocalRandom current = ThreadLocalRandom.current();
 
             long sleep = current.nextLong(
-                    Duration.ofSeconds(dummyDeliveryTimeProperties.getFinishMinSeconds()).toMillis(),
-                    Duration.ofSeconds(dummyDeliveryTimeProperties.getFinishMaxSeconds()).toMillis()
+                    Duration.ofSeconds(finishMinSeconds).toMillis(),
+                    Duration.ofSeconds(finishMaxSeconds).toMillis()
             );
 
             log.info(LOG_FORMAT, Duration.ofMillis(sleep).toSeconds(), DeliveryStateCode.A4.getName());
@@ -272,23 +366,6 @@ public class DummyDeliveryService {
             threadSleep(sleep);
 
             return DeliveryStateCode.A4;
-        }
-
-        /**
-         * 상태변경 콜백에서 오류가 나도 계속 진행한다.
-         *
-         * @param deliveryInfoId    deliveryInfoId
-         * @param callbackUrl       callbackUrl
-         * @param callbackId        callbackId
-         * @param deliveryStateCode deliveryStateCode
-         * @author 김현준
-         */
-        private void changeStateAndCallback(long deliveryInfoId, String callbackUrl, String callbackId, DeliveryStateCode deliveryStateCode) {
-            try {
-                deliveryCallbackService.changeStateAndCallback(deliveryInfoId, callbackUrl, callbackId, deliveryStateCode);
-            } catch (RestClientException e) { // 콜백에서 에러가 나도 배송은 계속 진행한다.
-                log.error(CALLBACK_SERVER_ERROR, e.getMessage(), e);
-            }
         }
 
         /**

@@ -1,0 +1,16 @@
+== 배송
+
+=== 배송 요청
+
+operation::delivery-controller-test/get-delivery-request[]
+
+=== 배송 요청 (시간 지정, 테스트 용도)
+
+operation::delivery-controller-test/get-delivery-request-for-test[]
+
+=== 콜백 예시
+
+배송 상태가 변경 될 때마다 콜백합니다. +
+배달 상태가 A4, A5, A6으로 응답을하면 더이상 상태가 변경되지 않습니다.
+
+operation::delivery-controller-test/callback[]

@@ -38,4 +38,33 @@ public class DeliveryRequestRequest {
     private String callbackId;
 
     private String callbackUrl;
+
+
+    private Integer acceptMinSeconds;
+    private Integer acceptMaxSeconds;
+
+    private Integer deliveryMinSeconds;
+    private Integer deliveryMaxSeconds;
+
+    private Integer finishMinSeconds;
+    private Integer finishMaxSeconds;
+
+    private Integer acceptPercent;
+
+
+    /**
+     * 시간, 확률을 설정 했는지 ?
+     *
+     * @return boolean true 설정함 false 한개라도 빈 값이 있음
+     * @author 김현준
+     */
+    public boolean isSetTime() {
+        return acceptMinSeconds != null
+                && acceptMaxSeconds != null
+                && deliveryMinSeconds != null
+                && deliveryMaxSeconds != null
+                && finishMinSeconds != null
+                && finishMaxSeconds != null
+                && acceptPercent != null;
+    }
 }

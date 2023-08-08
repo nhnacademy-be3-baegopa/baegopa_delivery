@@ -55,9 +55,7 @@ public class DeliveryService {
         // 더미 배송 시스템을 실행시킨다.
         dummyDeliveryService.startDummyDelivery(
                 deliveryInfoEntity.getDeliveryInfoId(),
-                deliveryRequestRequest.getCallbackUrl(),
-                deliveryRequestRequest.getCallbackId(),
-                deliveryRequestRequest.getPrepDatetime());
+                deliveryRequestRequest);
     }
 
     /**

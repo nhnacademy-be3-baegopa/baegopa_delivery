@@ -19,7 +19,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.env.Environment;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -67,20 +66,13 @@ public class SecureKeyManager {
      * @throws KeyManagementException    KeyManagementException
      * @author 김현준
      */
-    public SecureKeyManager(@Value("${nhn.cloud.security.password}") String password,
-                            Environment environment) throws KeyStoreException,
+    public SecureKeyManager(@Value("${nhn.cloud.security.password}") String password) throws KeyStoreException,
             CertificateException, IOException, NoSuchAlgorithmException,
             UnrecoverableKeyException, KeyManagementException {
         KeyStore clientStore = KeyStore.getInstance("PKCS12");
 
-        // boolean isProd = Arrays.asList(environment.getActiveProfiles()).contains("prod");
-
         InputStream result;
-        // if (isProd) {
-        //     result = Files.newInputStream(Path.of("/key/baegopa-project.p12"));
-        // } else {
         result = new ClassPathResource("baegopa-project.p12").getInputStream();
-        // }
 
         clientStore.load(result, password.toCharArray());
 
