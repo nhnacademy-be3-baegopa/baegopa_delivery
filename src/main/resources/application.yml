@@ -31,3 +31,12 @@ spring:
     view:
       prefix: /static/docs/
       suffix: .html
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: info, metrics, prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}    # 서비스 단위의 식별자. Prometheus label에 추가됨.
