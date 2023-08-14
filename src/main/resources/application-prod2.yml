@@ -1,0 +1,46 @@
+store:
+  baegopa:
+    delivery:
+      dummy-delivery-time:
+        acceptMinSeconds: 3
+        acceptMaxSeconds: 6
+        deliveryMinSeconds: 3
+        deliveryMaxSeconds: 6
+        finishMinSeconds: 3
+        finishMaxSeconds: 6
+
+      database:
+        url: "88278bfc57534f14a0a215afa89f6b5a"
+        username: "ded64cb3e6d541718b781e39fbe39959"
+        password: "307ee112467c4f2eb08f4274d8ca6246"
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        initial-size: 50
+        max-total: 50
+        max-idle: 50
+        min-idle: 50
+        max-wait-millis: 2000
+        validation-query: select 1
+        test-on-borrow: true
+
+logging:
+  level:
+    store:
+      baegopa: error
+
+    sql: error
+    root: error
+    web: error
+    org:
+      springframework: error
+
+  file:
+    name: "/home/nhn/logs/server.log"
+
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      file-name-pattern: ${LOG_FILE}.%d{yyyy-MM-dd}.%i
+      max-history: 30
+      total-size-cap: 1GB
+
+debug: false

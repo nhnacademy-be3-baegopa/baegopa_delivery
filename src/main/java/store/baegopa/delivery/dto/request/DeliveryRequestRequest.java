@@ -3,6 +3,7 @@ package store.baegopa.delivery.dto.request;
 import java.time.LocalDateTime;
 import javax.validation.constraints.NotNull;
 import lombok.Getter;
+import lombok.ToString;
 
 /**
  * 배달 요청
@@ -17,6 +18,7 @@ import lombok.Getter;
  * @since 2023/07/28
  */
 @Getter
+@ToString
 public class DeliveryRequestRequest {
     @NotNull
     private String deliveryAddress;

@@ -1,6 +1,7 @@
 package store.baegopa.delivery.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import store.baegopa.delivery.dto.request.DeliveryCancelRequest;
@@ -25,6 +26,7 @@ import store.baegopa.delivery.repository.DeliveryStateHistoryRepository;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DeliveryService {
     private final DeliveryInfoRepository deliveryInfoRepository;
     private final DeliveryStateHistoryRepository deliveryStateHistoryRepository;
@@ -38,6 +40,8 @@ public class DeliveryService {
      */
     @Transactional
     public void deliveryRequest(DeliveryRequestRequest deliveryRequestRequest) {
+        log.info("deliveryRequestRequest : {}", deliveryRequestRequest);
+
         DeliveryInfoEntity deliveryInfoEntity = deliveryInfoRepository.save(DeliveryInfoEntity.builder()
                 .deliveryAddress(deliveryRequestRequest.getDeliveryAddress())
                 .prepDatetime(deliveryRequestRequest.getPrepDatetime())

@@ -165,7 +165,7 @@ public class DummyDeliveryService {
             this.deliveryMinSeconds = dummyDeliveryTimeProperties.getDeliveryMinSeconds();
             this.deliveryMaxSeconds = dummyDeliveryTimeProperties.getDeliveryMaxSeconds();
             this.finishMinSeconds = dummyDeliveryTimeProperties.getFinishMinSeconds();
-            this.finishMaxSeconds = dummyDeliveryTimeProperties.getAcceptMaxSeconds();
+            this.finishMaxSeconds = dummyDeliveryTimeProperties.getFinishMaxSeconds();
             this.acceptPercent = 90;
         }
 
